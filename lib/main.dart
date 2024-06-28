@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'book_content_screen.dart';
+import 'epub_processor.dart';
 
 void main() {
   runApp(const MyApp());
@@ -37,7 +38,7 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ReadFlow Library'),
+        title: const Text('BlipFlow Library'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
       body: const BookLibraryScreen(),
@@ -52,8 +53,9 @@ class MyHomePage extends StatelessWidget {
             if (file.extension == 'epub') {
               File epubFile = File(file.path!);
               Uint8List bytes = await epubFile.readAsBytes();
+              List<Blip> blips = await extractBlipsFromEpub(bytes);
               Provider.of<BookProvider>(context, listen: false)
-                  .addBook(file.name, bytes);
+                  .addBook(file.name, blips);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Only EPUB files are allowed')),
@@ -93,7 +95,7 @@ class BookLibraryScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => BookContentScreen(
                   bookTitle: books[index].title,
-                  bookBytes: books[index].bytes,
+                  blips: books[index].blips,
                 ),
               ),
             );
@@ -116,9 +118,9 @@ class BookLibraryScreen extends StatelessWidget {
 
 class Book {
   final String title;
-  final Uint8List bytes;
+  final List<Blip> blips;
 
-  Book(this.title, this.bytes);
+  Book(this.title, this.blips);
 }
 
 class BookProvider extends ChangeNotifier {
@@ -126,9 +128,9 @@ class BookProvider extends ChangeNotifier {
 
   List<Book> get books => _books;
 
-  void addBook(String title, Uint8List bytes) {
+  void addBook(String title, List<Blip> blips) {
     if (!_books.any((b) => b.title == title)) {
-      _books.add(Book(title, bytes));
+      _books.add(Book(title, blips));
       notifyListeners();
     } else {
       print('Book already exists.');
