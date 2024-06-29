@@ -13,22 +13,13 @@ Future<List<Blip>> extractBlipsFromEpub(Uint8List epubBytes) async {
   List<Blip> blips = [];
 
   for (var chapter in epubBook.Chapters!) {
-    if (chapter.Title != null) {
-      blips.add(Blip(chapter.Title!));
-    }
-    if (chapter.HtmlContent != null) {
-      String textContent = _parseHtmlToText(chapter.HtmlContent!);
-      blips.addAll(_generateBlips(textContent));
-    }
-    for (var subChapter in chapter.SubChapters!) {
-      blips.addAll(await _extractBlipsFromSubChapter(subChapter));
-    }
+    blips.addAll(await _extractBlipsFromChapter(chapter));
   }
 
   return _mergeShortBlips(blips);
 }
 
-Future<List<Blip>> _extractBlipsFromSubChapter(EpubChapter chapter) async {
+Future<List<Blip>> _extractBlipsFromChapter(EpubChapter chapter) async {
   List<Blip> blips = [];
 
   if (chapter.Title != null) {
@@ -39,7 +30,7 @@ Future<List<Blip>> _extractBlipsFromSubChapter(EpubChapter chapter) async {
     blips.addAll(_generateBlips(textContent));
   }
   for (var subChapter in chapter.SubChapters!) {
-    blips.addAll(await _extractBlipsFromSubChapter(subChapter));
+    blips.addAll(await _extractBlipsFromChapter(subChapter));
   }
 
   return blips;
@@ -47,7 +38,22 @@ Future<List<Blip>> _extractBlipsFromSubChapter(EpubChapter chapter) async {
 
 String _parseHtmlToText(String htmlContent) {
   html_dom.Document document = html_parser.parse(htmlContent);
-  return document.body?.text ?? '';
+  return _extractTextFromElement(document.body);
+}
+
+String _extractTextFromElement(html_dom.Element? element) {
+  if (element == null) return '';
+
+  List<String> textParts = [];
+  for (var node in element.nodes) {
+    if (node is html_dom.Element) {
+      textParts.add(_extractTextFromElement(node));
+    } else if (node is html_dom.Text) {
+      textParts.add(node.text.trim());
+    }
+  }
+
+  return textParts.join('\n');
 }
 
 List<Blip> _generateBlips(String textContent) {
