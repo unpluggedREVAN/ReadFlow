@@ -8,18 +8,25 @@ class Blip {
   Blip(this.text);
 }
 
-Future<List<Blip>> extractBlipsFromEpub(Uint8List epubBytes) async {
-  EpubBook epubBook = await EpubReader.readBook(epubBytes);
-  List<Blip> blips = [];
+class ChapterBlips {
+  final String title;
+  final List<Blip> blips;
 
-  for (var chapter in epubBook.Chapters!) {
-    blips.addAll(await _extractBlipsFromChapter(chapter));
-  }
-
-  return _mergeShortBlips(blips);
+  ChapterBlips(this.title, this.blips);
 }
 
-Future<List<Blip>> _extractBlipsFromChapter(EpubChapter chapter) async {
+Future<List<ChapterBlips>> extractBlipsFromEpub(Uint8List epubBytes) async {
+  EpubBook epubBook = await EpubReader.readBook(epubBytes);
+  List<ChapterBlips> chapters = [];
+
+  for (var chapter in epubBook.Chapters!) {
+    chapters.add(await _extractBlipsFromChapter(chapter));
+  }
+
+  return chapters;
+}
+
+Future<ChapterBlips> _extractBlipsFromChapter(EpubChapter chapter) async {
   List<Blip> blips = [];
 
   if (chapter.Title != null) {
@@ -30,10 +37,11 @@ Future<List<Blip>> _extractBlipsFromChapter(EpubChapter chapter) async {
     blips.addAll(_generateBlips(textContent));
   }
   for (var subChapter in chapter.SubChapters!) {
-    blips.addAll(await _extractBlipsFromChapter(subChapter));
+    ChapterBlips subChapterBlips = await _extractBlipsFromChapter(subChapter);
+    blips.addAll(subChapterBlips.blips);
   }
 
-  return blips;
+  return ChapterBlips(chapter.Title ?? "Untitled", blips);
 }
 
 String _parseHtmlToText(String htmlContent) {

@@ -3,10 +3,10 @@ import 'epub_processor.dart';
 
 class BookContentScreen extends StatefulWidget {
   final String bookTitle;
-  final List<Blip> blips;
+  final List<ChapterBlips> chapters;
 
   const BookContentScreen(
-      {Key? key, required this.bookTitle, required this.blips})
+      {Key? key, required this.bookTitle, required this.chapters})
       : super(key: key);
 
   @override
@@ -15,11 +15,25 @@ class BookContentScreen extends StatefulWidget {
 
 class _BookContentScreenState extends State<BookContentScreen> {
   PageController _pageController = PageController(viewportFraction: 0.4);
+  int _currentBlipIndex = 0;
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController.addListener(() {
+      int newIndex = _pageController.page?.round() ?? 0;
+      if (_currentBlipIndex != newIndex) {
+        setState(() {
+          _currentBlipIndex = newIndex;
+        });
+      }
+    });
   }
 
   @override
@@ -33,9 +47,10 @@ class _BookContentScreenState extends State<BookContentScreen> {
             child: PageView.builder(
               controller: _pageController,
               scrollDirection: Axis.vertical,
-              itemCount: widget.blips.length,
+              itemCount: _getBlipCount(),
               itemBuilder: (context, index) {
-                return _buildBlipCard(widget.blips[index], index);
+                Blip blip = _getBlipByIndex(index);
+                return _buildBlipCard(blip, index);
               },
             ),
           ),
@@ -69,6 +84,7 @@ class _BookContentScreenState extends State<BookContentScreen> {
   }
 
   Widget _buildHeader() {
+    String currentChapterTitle = _getCurrentChapterTitle();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40.0),
       color: const Color(0xFFFF8161),
@@ -93,9 +109,9 @@ class _BookContentScreenState extends State<BookContentScreen> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const Text(
-                  'Capítulo 1', // Placeholder for dynamic chapter functionality
-                  style: TextStyle(
+                Text(
+                  currentChapterTitle,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: Colors.white,
                   ),
@@ -106,6 +122,32 @@ class _BookContentScreenState extends State<BookContentScreen> {
         ],
       ),
     );
+  }
+
+  int _getBlipCount() {
+    return widget.chapters
+        .fold(0, (count, chapter) => count + chapter.blips.length);
+  }
+
+  Blip _getBlipByIndex(int index) {
+    for (var chapter in widget.chapters) {
+      if (index < chapter.blips.length) {
+        return chapter.blips[index];
+      }
+      index -= chapter.blips.length;
+    }
+    throw IndexError(index, widget.chapters);
+  }
+
+  String _getCurrentChapterTitle() {
+    int currentIndex = _currentBlipIndex;
+    for (var chapter in widget.chapters) {
+      if (currentIndex < chapter.blips.length) {
+        return chapter.title;
+      }
+      currentIndex -= chapter.blips.length;
+    }
+    return "Untitled";
   }
 
   Widget _buildBlipCard(Blip blip, int index) {

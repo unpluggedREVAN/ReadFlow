@@ -39,7 +39,7 @@ class MyHomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('BlipFlow Library'),
-        backgroundColor: const Color(0xFFFF8161), // Cambiado a #FF8161
+        backgroundColor: const Color(0xFFFF8161),
       ),
       body: const BookLibraryScreen(),
       floatingActionButton: FloatingActionButton(
@@ -53,9 +53,9 @@ class MyHomePage extends StatelessWidget {
             if (file.extension == 'epub') {
               File epubFile = File(file.path!);
               Uint8List bytes = await epubFile.readAsBytes();
-              List<Blip> blips = await extractBlipsFromEpub(bytes);
+              List<ChapterBlips> chapters = await extractBlipsFromEpub(bytes);
               Provider.of<BookProvider>(context, listen: false)
-                  .addBook(file.name, blips);
+                  .addBook(file.name, chapters);
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Only EPUB files are allowed')),
@@ -64,7 +64,7 @@ class MyHomePage extends StatelessWidget {
           }
         },
         tooltip: 'Add Book',
-        backgroundColor: const Color(0xFFFF8161), // Cambiado a #FF8161
+        backgroundColor: const Color(0xFFFF8161),
         child: const Icon(Icons.add),
       ),
     );
@@ -96,7 +96,7 @@ class BookLibraryScreen extends StatelessWidget {
               MaterialPageRoute(
                 builder: (context) => BookContentScreen(
                   bookTitle: books[index].title,
-                  blips: books[index].blips,
+                  chapters: books[index].chapters,
                 ),
               ),
             );
@@ -119,9 +119,9 @@ class BookLibraryScreen extends StatelessWidget {
 
 class Book {
   final String title;
-  final List<Blip> blips;
+  final List<ChapterBlips> chapters;
 
-  Book(this.title, this.blips);
+  Book(this.title, this.chapters);
 }
 
 class BookProvider extends ChangeNotifier {
@@ -129,9 +129,9 @@ class BookProvider extends ChangeNotifier {
 
   List<Book> get books => _books;
 
-  void addBook(String title, List<Blip> blips) {
+  void addBook(String title, List<ChapterBlips> chapters) {
     if (!_books.any((b) => b.title == title)) {
-      _books.add(Book(title, blips));
+      _books.add(Book(title, chapters));
       notifyListeners();
     } else {
       print('Book already exists.');
