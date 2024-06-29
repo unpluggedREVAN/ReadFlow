@@ -11,8 +11,9 @@ class Blip {
 class ChapterBlips {
   final String title;
   final List<Blip> blips;
+  final List<ChapterBlips> subChapters;
 
-  ChapterBlips(this.title, this.blips);
+  ChapterBlips(this.title, this.blips, [this.subChapters = const []]);
 }
 
 Future<List<ChapterBlips>> extractBlipsFromEpub(Uint8List epubBytes) async {
@@ -36,12 +37,13 @@ Future<ChapterBlips> _extractBlipsFromChapter(EpubChapter chapter) async {
     String textContent = _parseHtmlToText(chapter.HtmlContent!);
     blips.addAll(_generateBlips(textContent));
   }
+
+  List<ChapterBlips> subChapters = [];
   for (var subChapter in chapter.SubChapters!) {
-    ChapterBlips subChapterBlips = await _extractBlipsFromChapter(subChapter);
-    blips.addAll(subChapterBlips.blips);
+    subChapters.add(await _extractBlipsFromChapter(subChapter));
   }
 
-  return ChapterBlips(chapter.Title ?? "Untitled", blips);
+  return ChapterBlips(chapter.Title ?? "Untitled", blips, subChapters);
 }
 
 String _parseHtmlToText(String htmlContent) {
@@ -83,7 +85,7 @@ List<Blip> _splitBlipIntelligently(String blipText) {
   List<Blip> blips = [];
   List<String> words = blipText.split(RegExp(r'\s+'));
 
-  if (words.length <= 30) {
+  if (words.length <= 25) {
     blips.add(Blip(blipText));
   } else {
     StringBuffer buffer = StringBuffer();
@@ -93,7 +95,7 @@ List<Blip> _splitBlipIntelligently(String blipText) {
       buffer.write('$word ');
       wordCount++;
 
-      if (wordCount >= 30 &&
+      if (wordCount >= 25 &&
           (word.endsWith(',') || word.endsWith(';') || word.endsWith('.'))) {
         blips.add(Blip(buffer.toString().trim()));
         buffer.clear();
@@ -130,7 +132,7 @@ List<Blip> _mergeShortBlips(List<Blip> blips) {
       buffer.write(blip.text);
     }
 
-    if (buffer.toString().split(RegExp(r'\s+')).length >= 30) {
+    if (buffer.toString().split(RegExp(r'\s+')).length >= 25) {
       mergedBlips.add(Blip(buffer.toString().trim()));
       buffer.clear();
     }

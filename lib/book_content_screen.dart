@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'epub_processor.dart';
+import 'package:provider/provider.dart';
+import 'main.dart';
 
 class BookContentScreen extends StatefulWidget {
   final String bookTitle;
   final List<ChapterBlips> chapters;
+  final int initialBlipIndex;
 
   const BookContentScreen(
-      {Key? key, required this.bookTitle, required this.chapters})
+      {Key? key,
+      required this.bookTitle,
+      required this.chapters,
+      required this.initialBlipIndex})
       : super(key: key);
 
   @override
@@ -14,7 +20,7 @@ class BookContentScreen extends StatefulWidget {
 }
 
 class _BookContentScreenState extends State<BookContentScreen> {
-  PageController _pageController = PageController(viewportFraction: 0.4);
+  late PageController _pageController;
   int _currentBlipIndex = 0;
 
   @override
@@ -26,12 +32,17 @@ class _BookContentScreenState extends State<BookContentScreen> {
   @override
   void initState() {
     super.initState();
+    _currentBlipIndex = widget.initialBlipIndex;
+    _pageController =
+        PageController(viewportFraction: 0.4, initialPage: _currentBlipIndex);
     _pageController.addListener(() {
       int newIndex = _pageController.page?.round() ?? 0;
       if (_currentBlipIndex != newIndex) {
         setState(() {
           _currentBlipIndex = newIndex;
         });
+        Provider.of<BookProvider>(context, listen: false)
+            .updateProgress(widget.bookTitle, _currentBlipIndex);
       }
     });
   }
@@ -84,7 +95,8 @@ class _BookContentScreenState extends State<BookContentScreen> {
   }
 
   Widget _buildHeader() {
-    String currentChapterTitle = _getCurrentChapterTitle();
+    String currentChapterTitle =
+        _getCurrentChapterTitle(widget.chapters, _currentBlipIndex);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40.0),
       color: const Color(0xFFFF8161),
@@ -126,28 +138,65 @@ class _BookContentScreenState extends State<BookContentScreen> {
 
   int _getBlipCount() {
     return widget.chapters
-        .fold(0, (count, chapter) => count + chapter.blips.length);
+        .fold(0, (count, chapter) => count + _getBlipCountRecursive(chapter));
+  }
+
+  int _getBlipCountRecursive(ChapterBlips chapter) {
+    return chapter.blips.length +
+        chapter.subChapters.fold(0,
+            (count, subChapter) => count + _getBlipCountRecursive(subChapter));
   }
 
   Blip _getBlipByIndex(int index) {
     for (var chapter in widget.chapters) {
-      if (index < chapter.blips.length) {
-        return chapter.blips[index];
+      int chapterBlipCount = _getBlipCountRecursive(chapter);
+      if (index < chapterBlipCount) {
+        return _getBlipByIndexRecursive(chapter, index);
       }
-      index -= chapter.blips.length;
+      index -= chapterBlipCount;
     }
     throw IndexError(index, widget.chapters);
   }
 
-  String _getCurrentChapterTitle() {
-    int currentIndex = _currentBlipIndex;
-    for (var chapter in widget.chapters) {
-      if (currentIndex < chapter.blips.length) {
-        return chapter.title;
+  Blip _getBlipByIndexRecursive(ChapterBlips chapter, int index) {
+    if (index < chapter.blips.length) {
+      return chapter.blips[index];
+    }
+    index -= chapter.blips.length;
+    for (var subChapter in chapter.subChapters) {
+      int subChapterBlipCount = _getBlipCountRecursive(subChapter);
+      if (index < subChapterBlipCount) {
+        return _getBlipByIndexRecursive(subChapter, index);
       }
-      currentIndex -= chapter.blips.length;
+      index -= subChapterBlipCount;
+    }
+    throw IndexError(index, chapter.subChapters);
+  }
+
+  String _getCurrentChapterTitle(List<ChapterBlips> chapters, int blipIndex) {
+    for (var chapter in chapters) {
+      int chapterBlipCount = _getBlipCountRecursive(chapter);
+      if (blipIndex < chapterBlipCount) {
+        return _getCurrentChapterTitleRecursive(chapter, blipIndex);
+      }
+      blipIndex -= chapterBlipCount;
     }
     return "Untitled";
+  }
+
+  String _getCurrentChapterTitleRecursive(ChapterBlips chapter, int blipIndex) {
+    if (blipIndex < chapter.blips.length) {
+      return chapter.title;
+    }
+    blipIndex -= chapter.blips.length;
+    for (var subChapter in chapter.subChapters) {
+      int subChapterBlipCount = _getBlipCountRecursive(subChapter);
+      if (blipIndex < subChapterBlipCount) {
+        return _getCurrentChapterTitleRecursive(subChapter, blipIndex);
+      }
+      blipIndex -= subChapterBlipCount;
+    }
+    return chapter.title;
   }
 
   Widget _buildBlipCard(Blip blip, int index) {
