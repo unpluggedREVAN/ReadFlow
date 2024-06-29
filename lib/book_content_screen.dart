@@ -86,38 +86,38 @@ class _BookContentScreenState extends State<BookContentScreen> {
           value = _pageController.page! - index;
           value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
         }
+        double fontSize = 18 * value;
         return Center(
           child: SizedBox(
             height: Curves.easeInOut.transform(value) * 250,
             width: Curves.easeInOut.transform(value) * 300,
             child: Opacity(
               opacity: value,
-              child: child,
+              child: Card(
+                color: const Color(0xFF333333),
+                elevation: 5,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      blip.text,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         );
       },
-      child: Card(
-        color: const Color(0xFF333333),
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Center(
-            child: Text(
-              blip.text,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }
