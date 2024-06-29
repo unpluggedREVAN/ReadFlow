@@ -26,18 +26,9 @@ class _BookContentScreenState extends State<BookContentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFF8161),
-      appBar: AppBar(
-        title: Text(widget.bookTitle),
-        backgroundColor: const Color(0xFFFF8161),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
       body: Column(
         children: [
+          _buildHeader(),
           Expanded(
             child: PageView.builder(
               controller: _pageController,
@@ -77,24 +68,69 @@ class _BookContentScreenState extends State<BookContentScreen> {
     );
   }
 
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 40.0),
+      color: const Color(0xFFFF8161),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.bookTitle,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text(
+                  'Capítulo 1', // Placeholder for dynamic chapter functionality
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildBlipCard(Blip blip, int index) {
     return AnimatedBuilder(
       animation: _pageController,
       builder: (context, child) {
         double value = 1.0;
         if (_pageController.position.haveDimensions) {
-          value = _pageController.page! - index;
-          value = (1 - (value.abs() * 0.3)).clamp(0.0, 1.0);
+          value = (_pageController.page! - index).clamp(-1.0, 1.0);
         }
-        double fontSize = 18 * value;
+
+        double scaleFactor = 1.0 - (value.abs() * 0.3);
+        double fontSizeScaleFactor =
+            1.0 - (value.abs() * 0.3); // Ajustar la escala de la letra
+        Color cardColor = _getCardColor(value);
+        Color textColor = _getTextColor(value);
+
         return Center(
           child: SizedBox(
-            height: Curves.easeInOut.transform(value) * 250,
-            width: Curves.easeInOut.transform(value) * 300,
+            height: Curves.easeInOut.transform(scaleFactor) * 250,
+            width: Curves.easeInOut.transform(scaleFactor) * 300,
             child: Opacity(
-              opacity: value,
+              opacity: scaleFactor,
               child: Card(
-                color: const Color(0xFF333333),
+                color: cardColor,
                 elevation: 5,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -102,14 +138,18 @@ class _BookContentScreenState extends State<BookContentScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Center(
-                    child: Text(
-                      blip.text,
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                    child: Transform.scale(
+                      scale:
+                          fontSizeScaleFactor, // Escalar el texto en lugar de cambiar el tamaño de la fuente
+                      child: Text(
+                        blip.text,
+                        style: TextStyle(
+                          fontSize: 18, // Mantener el tamaño de la fuente fijo
+                          color: textColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
@@ -119,5 +159,21 @@ class _BookContentScreenState extends State<BookContentScreen> {
         );
       },
     );
+  }
+
+  Color _getCardColor(double value) {
+    if (value == 0.0) {
+      return Color(0xFF333333);
+    } else {
+      return Color.lerp(Color(0xFFA5A5A5), Color(0xFF333333), 1 - value.abs())!;
+    }
+  }
+
+  Color _getTextColor(double value) {
+    if (value == 0.0) {
+      return Colors.white;
+    } else {
+      return Color.lerp(Color(0xFF666666), Colors.white, 1 - value.abs())!;
+    }
   }
 }

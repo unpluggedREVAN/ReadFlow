@@ -39,7 +39,7 @@ class MyHomePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('BlipFlow Library'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: const Color(0xFFFF8161), // Cambiado a #FF8161
       ),
       body: const BookLibraryScreen(),
       floatingActionButton: FloatingActionButton(
@@ -64,6 +64,7 @@ class MyHomePage extends StatelessWidget {
           }
         },
         tooltip: 'Add Book',
+        backgroundColor: const Color(0xFFFF8161), // Cambiado a #FF8161
         child: const Icon(Icons.add),
       ),
     );
